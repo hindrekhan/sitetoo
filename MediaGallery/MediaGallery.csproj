@@ -6,17 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Remove="credentials.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="credentials.json">
-      <Generator>MSBuild:Compile</Generator>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="BundlerMinifier.Core" Version="2.8.391" />
     <PackageReference Include="Google.Apis.Drive.v3" Version="1.36.1.1390" />
     <PackageReference Include="Microsoft.AspNetCore.App" />

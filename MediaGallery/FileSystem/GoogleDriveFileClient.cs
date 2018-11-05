@@ -18,14 +18,14 @@ namespace MediaGallery.FileSystem
     public class GoogleDriveFileClient : IFileClient
     {
         private readonly IHostingEnvironment _host;
-        static string[] Scopes = { DriveService.Scope.DriveReadonly };
-        static string ApplicationName = "Drive API .NET Quickstart";
-        UserCredential credential;
+        static string[] Scopes = { DriveService.Scope.Drive, DriveService.Scope.DriveFile };
+        static string ApplicationName = "abc1";
         DriveService service;
 
         public GoogleDriveFileClient(IHostingEnvironment host)
         {
             _host = host;
+            UserCredential credential;
 
             using (var stream = new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
             {
@@ -33,7 +33,7 @@ namespace MediaGallery.FileSystem
                 credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
                     GoogleClientSecrets.Load(stream).Secrets,
                     Scopes,
-                    "user",
+                    "hindrek.hannus@gmail.com",
                     CancellationToken.None,
                     new FileDataStore(credPath, true)).Result;
                 Console.WriteLine("Credential file saved to: " + credPath);
@@ -50,22 +50,55 @@ namespace MediaGallery.FileSystem
 
         public void CreateFolder(string parentPath, string folderName)
         {
-            var path = Path.Combine(_host.WebRootPath, "gallery", parentPath, folderName);
-            //Google.Apis.Drive.v3.Data.File 
+            FilesResource.ListRequest listRequest = service.Files.List();
+            listRequest.PageSize = 100;
+            listRequest.Fields = "nextPageToken, files(id, name)";
 
+            IList<Google.Apis.Drive.v3.Data.File> files = listRequest.Execute()
+                .Files;
 
-            //FilesResource.CreateRequest request = service.Files.Create()
+            var fileMetadata = new Google.Apis.Drive.v3.Data.File()
+            {
+                Name = folderName,
+                MimeType = "application/vnd.google-apps.folder"
+            };
 
-            //Directory.CreateDirectory(path);
+            var request = service.Files.Create(fileMetadata);
+            request.Fields = "id";
+            var file = request.Execute();
         }
 
         public Stream GetFile(string path)
         {
-            FilesResource.GetRequest request = service.Files.Get(path);
+            Stream stream = new MemoryStream();
+            string id = "";
 
-            var filePath = Path.Combine(_host.WebRootPath, "gallery", path);
-            Google.Apis.Drive.v3.Data.File file = request.Execute();
-            Stream stream = service.HttpClient.GetStreamAsync(file.WebViewLink).Result;
+            FilesResource.ListRequest listRequest = service.Files.List();
+            listRequest.PageSize = 100;
+            listRequest.Fields = "nextPageToken, files(id, name)";
+
+            IList<Google.Apis.Drive.v3.Data.File> files = listRequest.Execute()
+                .Files;
+
+            foreach (var file in files)
+            {
+                if (file.Name == Path.GetFileName(path))
+                {
+                    id = file.Id;
+                    break;
+                }
+            }
+
+            try
+            {
+                FilesResource.GetRequest request = service.Files.Get(id);
+                request.Download(stream);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
             return stream;
         }
 
@@ -83,20 +116,19 @@ namespace MediaGallery.FileSystem
 
         public void UploadPhoto(string path, Stream photo)
         {
-            path = Path.Combine(_host.WebRootPath, "gallery", path);
+            var body = new Google.Apis.Drive.v3.Data.File();
+            body.Name = Path.GetFileName(path);
 
-            var fileMetadata = new Google.Apis.Drive.v3.Data.File()
+            try
             {
-                Name = path,
-            };
-
-            FilesResource.CreateMediaUpload request;
-            request = service.Files.Create(fileMetadata, photo, "image/jpeg");
-            request.Fields = "id";
-            request.Upload();
-
-            var file = request.ResponseBody;
-            Console.WriteLine("File ID: " + file.Id);
+                FilesResource.CreateMediaUpload request = service.Files.Create(body, photo, "text/plain");
+                var y = request.Upload();
+                var x = request.ResponseBody;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
     }
 }
