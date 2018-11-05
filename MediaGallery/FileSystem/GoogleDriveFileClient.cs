@@ -70,7 +70,7 @@ namespace MediaGallery.FileSystem
 
             if (file == null)
             {
-                Console.WriteLine("Test: ", path);
+                //path on alati empty ja ei oska parandada
                 return stream;
             }
 
@@ -81,7 +81,7 @@ namespace MediaGallery.FileSystem
             }
             catch (Exception e)
             {
-                Console.WriteLine("Test: ", e);
+                Console.WriteLine(e);
             }
 
             return stream;
@@ -143,13 +143,6 @@ namespace MediaGallery.FileSystem
             }
 
             return file;
-        }
-
-        string[] GetDirectories(string path)
-        {
-            var directories = path.Split(Path.DirectorySeparatorChar);
-
-            return directories;
         }
 
     }
