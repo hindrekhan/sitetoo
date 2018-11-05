@@ -50,12 +50,7 @@ namespace MediaGallery.FileSystem
 
         public void CreateFolder(string parentPath, string folderName)
         {
-            FilesResource.ListRequest listRequest = service.Files.List();
-            listRequest.PageSize = 100;
-            listRequest.Fields = "nextPageToken, files(id, name)";
-
-            IList<Google.Apis.Drive.v3.Data.File> files = listRequest.Execute()
-                .Files;
+            var files = GetFiles();
 
             var fileMetadata = new Google.Apis.Drive.v3.Data.File()
             {
@@ -70,33 +65,23 @@ namespace MediaGallery.FileSystem
 
         public Stream GetFile(string path)
         {
-            Stream stream = new MemoryStream();
-            string id = "";
+            var stream = new MemoryStream();
+            var file = FindFile(path);
 
-            FilesResource.ListRequest listRequest = service.Files.List();
-            listRequest.PageSize = 100;
-            listRequest.Fields = "nextPageToken, files(id, name)";
-
-            IList<Google.Apis.Drive.v3.Data.File> files = listRequest.Execute()
-                .Files;
-
-            foreach (var file in files)
+            if (file == null)
             {
-                if (file.Name == Path.GetFileName(path))
-                {
-                    id = file.Id;
-                    break;
-                }
+                Console.WriteLine("Test: ", path);
+                return stream;
             }
 
             try
             {
-                FilesResource.GetRequest request = service.Files.Get(id);
+                var request = service.Files.Get(file.Id);
                 request.Download(stream);
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Console.WriteLine("Test: ", e);
             }
 
             return stream;
@@ -121,7 +106,7 @@ namespace MediaGallery.FileSystem
 
             try
             {
-                FilesResource.CreateMediaUpload request = service.Files.Create(body, photo, "text/plain");
+                FilesResource.CreateMediaUpload request = service.Files.Create(body, photo, "image/jpeg");
                 var y = request.Upload();
                 var x = request.ResponseBody;
             }
@@ -130,5 +115,42 @@ namespace MediaGallery.FileSystem
                 Console.WriteLine(e);
             }
         }
+
+        IList<Google.Apis.Drive.v3.Data.File> GetFiles()
+        {
+            FilesResource.ListRequest listRequest = service.Files.List();
+            listRequest.Fields = "nextPageToken, files(id, name)";
+            listRequest.PageSize = 100;
+
+            IList<Google.Apis.Drive.v3.Data.File> files = listRequest.Execute()
+                .Files;
+
+            return files;
+        }
+
+        Google.Apis.Drive.v3.Data.File FindFile(string path)
+        {
+            Google.Apis.Drive.v3.Data.File file = null;
+            var files = GetFiles();
+
+            foreach (var f in files)
+            {
+                if (f.Name == Path.GetFileName(path))
+                {
+                    file = f;
+                    break;
+                }
+            }
+
+            return file;
+        }
+
+        string[] GetDirectories(string path)
+        {
+            var directories = path.Split(Path.DirectorySeparatorChar);
+
+            return directories;
+        }
+
     }
 }
